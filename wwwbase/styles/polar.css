@@ -4,6 +4,11 @@ body {
   background-color: white;
   color: black;
   font-family: serif;
+
+}
+#resultsWrapper {
+  width: 1200px;
+  margin: 0 auto;
 }
 
 .theader {
