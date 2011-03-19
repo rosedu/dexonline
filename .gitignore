@@ -3,3 +3,6 @@ log
 templates_c
 tools/sql-functions.so
 wwwbase/.htaccess
+.buildpath
+.project
+.settings
