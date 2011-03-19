@@ -182,7 +182,6 @@ class Definition extends BaseObject {
       }
       $lexemIds .= $lexem->id;
     }
-
     $sourceClause = $sourceId ? "and D.sourceId = $sourceId" : '';
     $excludeClause = $exclude_unofficial ? "and S.isOfficial <> 0 " : '';
     $dbResult = db_execute(sprintf("select distinct D.* from Definition D, LexemDefinitionMap L, Source S " .
@@ -199,11 +198,15 @@ class Definition extends BaseObject {
                            "order by S.isOfficial desc, S.displayOrder, D.lexicon");
     return db_getObjects(new Definition(), $dbResult);
   }
-
-  public static function searchFullText($words, $hasDiacritics) {
+  public static function searchFullText($words, $hasDiacritics, $sourceId) {
     $intersection = null;
-
-    $matchingLexems = array();
+    
+	if (count($words) == 1 ) {
+	  $oneWord = TRUE;
+	}
+	else $oneWord = FALSE;
+	
+	$matchingLexems = array();
     foreach ($words as $word) {
       $lexems = Lexem::searchInflectedForms($word, $hasDiacritics);
       $lexemIds = '';
@@ -219,7 +222,7 @@ class Definition extends BaseObject {
     foreach ($words as $i => $word) {
       // Load all the definitions for any possible lexem for this word.
       $lexemIds = $matchingLexems[$i];
-      $defIds = FullTextIndex::loadDefinitionIdsForLexems($lexemIds);
+      $defIds = FullTextIndex::loadDefinitionIdsForLexems($lexemIds, $sourceId);
       debug_resetClock();
       $intersection = ($intersection === null)
         ? $defIds
@@ -229,9 +232,10 @@ class Definition extends BaseObject {
     if ($intersection === null) { // This can happen when the query is all stopwords
       $intersection = array();
     }
-
+    
+    if ($oneWord) return FullTextIndex::sortDefsByLexems($intersection);
+    
     $shortestInvervals = array();
-
     debug_resetClock();
     // Now compute a score for every definition
     foreach ($intersection as $defId) {
@@ -242,13 +246,12 @@ class Definition extends BaseObject {
         $p[] = FullTextIndex::loadPositionsByLexemIdsDefinitionId($lexemIds, $defId);
       }
       $shortestIntervals[] = util_findSnippet($p);
-    }
-
     if ($intersection) {
+    }
       array_multisort($shortestIntervals, $intersection);
     }
-    debug_stopClock("Computed score for every definition");
-
+    
+    debug_stopClock("Computed score for every definition");   	   
     return $intersection;
   }
 
@@ -1258,14 +1261,27 @@ class LocVersion {
 }
 
 class FullTextIndex extends BaseObject {
+  public static function sortDefsByLexems($defIds) {
+      $ids = '';
+      foreach ($defIds as $defId) {
+        if ($ids) {
+          $ids .= ',';
+        }
+        $ids .= $defId;
+      }
+  	return db_getArray(db_execute("select distinct definitionId from FullTextIndex F join Lexem L on L.id = F.lexemId where definitionId in ($ids) order by formNoAccent"));
+  }
   // Takes a comma-separated string of lexem ids
-  public static function loadDefinitionIdsForLexems($lexemIds) {
+  public static function loadDefinitionIdsForLexems($lexemIds, $sourceId) {
     if (!$lexemIds) {
       return array();
     }
-    return db_getArray(db_execute("select distinct definitionId from FullTextIndex where lexemId in ($lexemIds) order by definitionId"));
+    $sourceClause = $sourceId ? "and D.sourceId = $sourceId" : ''; 
+    $orderByClause = "order by definitionId";
+    return db_getArray(db_execute("select distinct definitionId from FullTextIndex F join Definition D on D.id = F.definitionId ". 
+                                  "where lexemId in ($lexemIds) $sourceClause $orderByClause"));
   }
-
+  
   public static function loadPositionsByLexemIdsDefinitionId($lexemIds, $defId) {
     return db_getArray(db_execute("select distinct position from FullTextIndex where lexemId in ($lexemIds) and definitionId = $defId order by position"));
   }
