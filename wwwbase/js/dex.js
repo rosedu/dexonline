@@ -348,6 +348,14 @@ function isValidWord(word) {
 	return false;
 }
 
+function loadRandomWord() {
+	$('.random_word').load(getWwwRoot()+"ajax/random_word.php","",
+			function() {
+				$('.random_word').slideDown(500);
+			}
+		);
+}
+
 function searchClickedWord(evt) {
   var st = getSelectedText();
   if (st && st != '') {

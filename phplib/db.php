@@ -8,7 +8,7 @@ function db_init() {
   ADOdb_Active_Record::SetDatabaseAdapter($db);
   $db->Execute('set names utf8');
   $GLOBALS['db'] = $db;
-  // $db->debug = true; //just for debug
+  //$db->debug = true; //just for debug
 }
 
 function db_execute($query) {
@@ -65,6 +65,23 @@ function db_getArray($recordSet) {
     $recordSet->MoveNext();
   }
   return $result;
+}
+
+/**
+ * Executes a query and returns a multidimensional array, much like mysql_fetch_assoc, because AdoDB has a horrible method to return an assoc array.
+ * @uses Never use this function with a query that returns only ONE column. Use db_fetchSingleRow instead.
+ * @param string $query The query to be executed.
+ * @return returns a multidimensional array of the form $result[index]['collumn'] or false if there's no result.
+ */
+
+function db_getArrayAssoc($query) {
+  
+  $query_result = $GLOBALS['db']->GetAssoc($query);
+  $result = array();
+  foreach ($query_result as $array_index ) 
+    $result[] = $array_index;
+  
+  return count($result) ? $result : FALSE;
 }
 
 function db_getObjects($obj, $dbResult) {

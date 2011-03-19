@@ -324,6 +324,13 @@ div.noParadigm {
   white-space: nowrap;
 }
 
+div.random_word {
+  margin: 0 auto;
+  text-align: justify;
+  position: relative;
+  width: 60%;
+}
+
 span.isLoc {
   color: green;
   cursor: help;
@@ -542,7 +549,7 @@ span.spaced {
 }
 
 table.static {
-  margin-left: 20px;
+  margin: 0 auto;
 }
 
 /* jquery tablesorter stuff */
